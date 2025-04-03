@@ -1,10 +1,8 @@
 require("dotenv").config();
 const express = require("express");
-const mysql = require('mysql2')
-const bodyParser = require("body-parser")
-
-// const mysql = require("mysql");
+const bodyParser = require("body-parser");
 const geolib = require("geolib");
+const mysql = require("mysql2");
 
 const app = express();
 const PORT = 3000;
@@ -15,9 +13,9 @@ app.use(bodyParser.urlencoded());
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "yourpassword",
-  database: "school_management",
-  port:3300
+  password: "Mansi.chawla2",
+  database:"school_management",
+  port: 3300,
 });
 db.connect((err) => {
   if (err) {
@@ -26,6 +24,7 @@ db.connect((err) => {
     console.log("Connected to MySQL");
   }
 });
+
 // Routes
 app.post("/addSchool", (req, res) => {
   const { name, address, latitude, longitude } = req.body;
@@ -51,7 +50,6 @@ app.post("/addSchool", (req, res) => {
 app.get("/listSchools", (req, res) => {
   const { latitude, longitude } = req.query;
 
-
   const sql = "SELECT * FROM SCHOOLS";
   db.query(sql, (err, schools) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -68,7 +66,6 @@ app.get("/listSchools", (req, res) => {
     return res.json(sortedSchools);
   });
 });
-
 
 app.listen(PORT, () => {
   console.log(`server is running on ${PORT}`);
