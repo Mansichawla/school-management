@@ -1,20 +1,31 @@
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
-const mysql = require("mysql");
+const mysql = require('mysql2')
+const bodyParser = require("body-parser")
+
+// const mysql = require("mysql");
+const geolib = require("geolib");
 
 const app = express();
-const PORT = 8000;
+const PORT = 3000;
 
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(bodyParser.urlencoded());
 
 const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: "localhost",
+  user: "root",
+  password: "yourpassword",
+  database: "school_management",
+  port:3300
 });
-
+db.connect((err) => {
+  if (err) {
+    console.log("Database connection failed:", err);
+  } else {
+    console.log("Connected to MySQL");
+  }
+});
 // Routes
 app.post("/addSchool", (req, res) => {
   const { name, address, latitude, longitude } = req.body;
@@ -27,14 +38,12 @@ app.post("/addSchool", (req, res) => {
     "INSERT INTO schools (name, address, latitude, longitude) VALUES (?, ?, ?, ?)";
   db.query(sql, [name, address, latitude, longitude], (err, data) => {
     if (err) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Database error", err });
     } else {
-      res
-        .status(201)
-        .json({
-          message: "school added successfully",
-          schoolId: data.insertID,
-        });
+      res.status(201).json({
+        message: "school added successfully",
+        schoolId: data.insertID,
+      });
     }
   });
 });
@@ -42,30 +51,24 @@ app.post("/addSchool", (req, res) => {
 app.get("/listSchools", (req, res) => {
   const { latitude, longitude } = req.query;
 
-  if (!latitude || !longitude) {
-    return res
-      .status(400)
-      .json({ error: "Latitude and Longitude are required" });
-  }
 
-  db.query("SELECT * FROM SCHOOLS", (err, data) => {
+  const sql = "SELECT * FROM SCHOOLS";
+  db.query(sql, (err, schools) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    const sortedSchools = data
+    const sortedSchools = schools
       .map((school) => ({
         ...school,
-        distance: calculateDistance(
-          latitude,
-          longitude,
-          school.latitude,
-          school.longitude
+        distance: geolib.getDistance(
+          { latitude: Number(latitude), longitude: Number(longitude) },
+          { latitude: school.latitude, longitude: school.longitude }
         ),
       }))
       .sort((a, b) => a.distance - b.distance);
-      return res.json(sortedSchools);
+    return res.json(sortedSchools);
   });
-  
 });
+
 
 app.listen(PORT, () => {
   console.log(`server is running on ${PORT}`);
